@@ -1,0 +1,19 @@
+
+#lang racket/gui
+
+(define (delete_from_list ele lista)
+  (cond ((null? lista) '())
+        ((equal? ele (car lista)) (delete_from_list ele (cdr lista)))
+        (else (append (list (car lista)) (delete_from_list ele (cdr lista))))
+  )
+ )
+
+;;( (1 (5 4)) (2 (1 10)) (3 (10 11)) )  (jugador (carta1 carta2...))
+
+[define (draw_card)
+  (random 1 14)]
+[define (blackjack? cards)
+  (cond((and (equal? (lenght cards) 2)
+             (or (and (equal? (car cards) 1) (equal? (cadr cards) 10))
+                 (and (equal? (car cards) 10) (equal? (cadr cards) 1)))) #t)
+       (else #f))]
