@@ -1,16 +1,24 @@
-#lang racket/gui
- 
+#lang racket
 
-(provide print-cake)
- 
-; draws a cake with n candles
-(define (print-cake n)
-  (show "   ~a   " n #\.)
-  (show " .-~a-. " n #\|)
-  (show " | ~a | " n #\space)
-  (show "---~a---" n #\-))
- 
-(define (show fmt n ch)
-  (printf fmt (make-string n ch))
-  (newline))
+(provide draw_card)
+(provide keep_playing?)
+(provide give_results)
+(provide bCEj)
+
+(define (draw_card player cards)
+  '((82 103 132 11) (12 73 41 13) (91 33) (81 54 71)))
+
+(define (keep_playing? cards)
+  #t)
+
+(define (give_results cards)
+  '("WINS" "LOSES" "WINS"))
+
+
+(define (bCEj players)
+  '( (11 22 34 545 6787 80 3454 65)(82 103) (12 73) (91 33) (81 54)))
+
+
+  
+
 
