@@ -2,16 +2,6 @@
 
 (require "logic.rkt")
 
-
-(define (first list)
-  (car list))
-(define (rest list)
-  (cdr list))
-(define (second list)
-  (cadr list))
-(define (third list)
-  (caddr list))
-
 ;         ________________________
 ;________/Definicion de variables
 
@@ -22,6 +12,12 @@
 (define game '())
 (define result_strings '("" "" ""))
 (define player_names '("" "" ""))
+(define extras 0)
+(define sound1 "card.wav")
+(define sound2 "finale.wav")
+(define play-asynchronously #t)
+(play-sound "cards/card.wav" play-asynchronously)
+(play-sound "finale.wav" play-asynchronously)
 
 ;________________________________
 
@@ -85,15 +81,20 @@
 (define (start_game p1 p2 p3)
   (define new_game '())
   (cond
-       [(equal? p1 "") (send players show #t)]
-       [(equal? p2 "") (set! new_game (bCEj (list p1))) (set! playing 1) (set! player_names (list p1))]
+       [(and (equal? p2 "") (equal? p3 "")(equal? p1 "")) (send players show #t)]
+       [(and (equal? p2 "") (equal? p3 "")) (set! new_game (bCEj (list p1))) (set! playing 1) (set! player_names (list p1))]
+       [(and (equal? p1 "") (equal? p3 "")) (set! new_game (bCEj (list p2))) (set! playing 1) (set! player_names (list p2))]
+       [(and (equal? p1 "") (equal? p2 "")) (set! new_game (bCEj (list p3))) (set! playing 1) (set! player_names (list p3))]
        [(equal? p3 "") (set! new_game (bCEj (list p1 p2))) (set! playing 2) (set! player_names (list p1 p2))]
        [(equal? p1 "") (set! new_game (bCEj (list p2 p3))) (set! playing 2) (set! player_names (list p2 p3))]
        [(equal? p2 "") (set! new_game (bCEj (list p1 p3))) (set! playing 2) (set! player_names (list p1 p3))]
        [else(set! new_game (bCEj (list p1 p2 p3))) (set! playing 3) (set! player_names (list p1 p2 p3))])
   (set! deck (first new_game))
+  ;(play-sound sound2 play-asynchronously)
   (set! game (rest new_game))
-  (show_cards game 0))
+  (show_cards game 0)
+  (cond
+    ((not(keep_playing? (player_cards turn))) (next_turn) )))
 
 ;Input: Las cartas de un jugador y un numero para referenciarlo 
 ;Output: Llama a set pair para mostrar los pares de cartas inciales
@@ -120,6 +121,7 @@
   (define pic '())
   (define x 0)
   (define y 0)
+  (play-sound sound1 play-asynchronously)
                               (cond
                                  ;Hidden
                                  [(= card 0)(set! pic (make-object bitmap% "cards/00.png"))]
@@ -193,33 +195,31 @@
                             (cond
                                  [(= player 0)
                                   {cond
-                                    [(= pos 1)(set! x 665)(set! y 34) (display x)]
+                                    [(= pos 1)(set! x 665)(set! y 34)]
                                     [(= pos 2)(set! x 858)(set! y 33)]
                                     [(= pos 3)(set! x 1055)(set! y 34)]
-                                    [else (set! x 1248) (set! y 32)]
+                                    [else (set! x (+ 1248 (* 90 extras))) (set! y 32) (set! extras (+ extras 1))]
                                     }]
                                  [(= player 1)
                                   {cond
                                     [(= pos 1)(set! x 94)(set! y 626)]
                                     [(= pos 2)(set! x 285)(set! y 626)]
-                                    [(= pos 3)(set! x 190)(set! y 360)]
-                                    [else (set! x 280) (set! y 360)]
+                                    [else (set! x (+ 190 (* 90 extras))) (set! y 360) (set! extras (+ extras 1))]
                                     }]
                                  [(= player 2)
                                   {cond
                                     [(= pos 1)(set! x 775)(set! y 632)]
                                     [(= pos 2)(set! x 966)(set! y 632)]
-                                    [(= pos 3)(set! x 871)(set! y 366)]
-                                    [else (set! x 961) (set! y 366)]
+                                    [else (set! x (+ 871 (* 90 extras))) (set! y 366)(set! extras (+ extras 1))]
                                     }]
                                  [(= player 3)
                                   {cond
                                     [(= pos 1)(set! x 1452)(set! y 634)]
                                     [(= pos 2)(set! x 1644)(set! y 634)]
-                                    [(= pos 3)(set! x 1548)(set! y 368)]
-                                    [else (set! x 1638) (set! y 368)]
+                                    [else (set! x (+ 1548 (* 90 extras))) (set! y 368)(set! extras (+ extras 1))]
                                     }])
-                            (send (send canvas get-dc) draw-bitmap pic x y))
+                            (send (send canvas get-dc) draw-bitmap pic x y)
+                            (sleep 0.4))
 
 ;Input: Recibe un numero de 0 a 3
 ;Output: Una lista con las cartas del jugador
@@ -237,12 +237,12 @@
 ;Evalua si el jeugo debe terminar o continuar
 (define (next_turn)(cond
                      [(= playing 1)(send msg set-label "Thanks for playing")(end_game)]
-                     [(and(= playing 2)(= turn 1)) (send msg set-label (string-append "In turn: " (first player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
+                     [(and(= playing 2)(= turn 1)) (send msg set-label (string-append "In turn: " (second player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
                      [(and(= playing 2)(= turn 2)) (send msg set-label "Thanks for playing")(end_game)]
                      [(and(= playing 3)(= turn 1)) (send msg set-label (string-append "In turn: " (second player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
                      [(and(= playing 3)(= turn 2)) (send msg set-label (string-append "In turn: " (third player_names)))(set! turn 3)(show_card (second(player_cards 3)) 3 2)]
                      [(and(= playing 3)(= turn 3)) (send msg set-label "Thanks for playing")(end_game)]
-                     ))
+                     )(set! extras 0))
 
 ;Input: N/A
 ;Output: Termina la partida y muestra la ventana de resultados
@@ -250,11 +250,12 @@
 (define (end_game)
   (show_crupier (rest(player_cards 0)) 2)
   (set! result_strings (winners game))
+  (play-sound sound2 play-asynchronously)
   (send result1 set-label (string-append (string-append (first player_names) " ") (first result_strings)))
   (cond
-    [(>= playing 2) (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))]
+    [(= playing 2) (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))]
     [(= playing 3) (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))
-                   (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))])
+                   (send result3 set-label (string-append (string-append (third player_names) " ") (third result_strings)))])
   (send results show #t))
 
 ;Input: Una lista con las cartas del crupier y la posicion donde va la primer carta de la lista
@@ -305,6 +306,9 @@
                          (set! deck '())
                          (set! game '())
                          (set! result_strings '())
+                         (send result1 set-label " ")
+                         (send result2 set-label " ")
+                         (send result3 set-label " ")
                          (set! player_names '())
                          (send players show #t)
                          )])

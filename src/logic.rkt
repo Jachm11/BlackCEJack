@@ -209,13 +209,13 @@
 
 
 ;;crupier tiene blackjack
-(winners '((121 12) (12 65) (12 13) (121 64 131)))
+;(winners '((121 12) (12 65) (12 13) (121 64 131)))
 
 ;; Jugador 1 con blackjack
-(winners '((121 12) (121 12) (12 13) (121 64 131)))
+;(winners '((121 12) (121 12) (12 13) (121 64 131)))
 
 ;;j1 empata con 12, j2 gana con 13, j3 pierde con 10
-(winners '((12 12) (12 12) (34 113) (64 43)))
+;(winners '((12 12) (12 12) (34 113) (64 43)))
                      
   
   
