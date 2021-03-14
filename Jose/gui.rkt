@@ -1,79 +1,318 @@
 #lang racket/gui
 
-
 (require "logic.rkt")
 
 
-(define imgFondo (make-object bitmap% "bg.jpg"))
-(define image2 (make-object bitmap% "pika.jpg"))
+(define (first list)
+  (car list))
+(define (rest list)
+  (cdr list))
+(define (second list)
+  (cadr list))
+(define (third list)
+  (caddr list))
+
+;         ________________________
+;________/Definicion de variables
+
+(define background (make-object bitmap% "bg.png"))
+(define playing 1)
+(define turn 1)
+(define deck '())
+(define game '())
+(define result_strings '("" "" ""))
+(define player_names '("" "" ""))
+
+;________________________________
 
 
+;         ______________________________________________
+;________/Definicion de frame principal y sus elementos
+
+;Define un frame no ajustable de 1920x1040
 (define frame (new frame%
                    [label "BlackCEJack"]
-                   [width 800]
-                   [height 600]
-                   [style '(no-resize-border)]))
+                   [width 1920]
+                   [height 1040]
+                   [style '(no-resize-border)]
+                   ))
 
-
+;Mensaje sobre el frame
 (define msg (new message% [parent frame]
-                          [label "No events so far..."]))
+                          [label "Welcome"]
+                          [auto-resize #t]))
 
-
+;Define un canvas de 1920 x 900 en el frame
 (define canvas (new canvas% [parent frame]
-             [min-width 800]	 
-   	     [min-height 550]
+             [min-width 1920]	 
+   	     [min-height 900]
              [paint-callback
               (lambda (canvas dc)
-                (send dc draw-bitmap imgFondo 0 0)
-                (send dc draw-bitmap image2 100 50)
-                (send dc set-scale 3 3)
-                (send dc set-text-foreground "blue")
-                (send dc draw-text "Don't Panic!" 0 0))]))
+                (send dc draw-bitmap background 0 0))]))
 
-
+;Define un panel para contener los botones, y los botones de la interfaz
 (define panel (new horizontal-panel%
                    [parent frame]
                    [alignment '(center bottom)]
                    [vert-margin 0]))
 (new button% [parent panel]
+             [min-width 100]	 
+   	     [min-height 50]
              [label "Stay"]
              [callback (lambda (button event)
-                         (send (send canvas get-dc) clear)
-                         (send (send canvas get-dc) draw-text "Don't Panic!" 0 0))])
+                         (next_turn))])
 (new button% [parent panel]
-             [label "Hit"])
+             [min-width 100]	 
+   	     [min-height 50]
+             [label "Hit"]
+             [callback (lambda (button event)
+                         (define updated_game (draw_card turn (append (list deck) game)))
+                         (set! game (rest updated_game))
+                         (set! deck (first updated_game))
+                         (show_card (list-ref (player_cards turn) (- (length (player_cards turn)) 1) ) turn (length (player_cards turn)))
+                         (cond
+                              [(keep_playing? (player_cards turn))]
+                              [else (next_turn)]))])
+
+;____________________________________________________
+
+;       ____________________________________
+;______/Funciones principales de la interfaz
+
+;Input: Recibe 3 strings con los nombres de los jugadores
+;Output: LLama a show_cards que muestra las cartas inicialese en la interfaz
+;Comienza el juego. Pide a la logica que arme la partida incial.
+(define (start_game p1 p2 p3)
+  (define new_game '())
+  (cond
+       [(equal? p1 "") (send players show #t)]
+       [(equal? p2 "") (set! new_game (bCEj (list p1))) (set! playing 1) (set! player_names (list p1))]
+       [(equal? p3 "") (set! new_game (bCEj (list p1 p2))) (set! playing 2) (set! player_names (list p1 p2))]
+       [(equal? p1 "") (set! new_game (bCEj (list p2 p3))) (set! playing 2) (set! player_names (list p2 p3))]
+       [(equal? p2 "") (set! new_game (bCEj (list p1 p3))) (set! playing 2) (set! player_names (list p1 p3))]
+       [else(set! new_game (bCEj (list p1 p2 p3))) (set! playing 3) (set! player_names (list p1 p2 p3))])
+  (set! deck (first new_game))
+  (set! game (rest new_game))
+  (show_cards game 0))
+
+;Input: Las cartas de un jugador y un numero para referenciarlo 
+;Output: Llama a set pair para mostrar los pares de cartas inciales
+;Funcion recursiva que muestra los pares iniciales de cartas de los jugadores
+(define (show_cards cards player)(cond
+                          [(null? cards)(send msg set-label (string-append "In turn: " (first player_names)))]
+                          [else (set_pair (first cards) player ) (show_cards (rest cards) (+ player 1))]
+                          ))
+
+;Input: Las cartas de un jugador y un numero para referenciarlo
+;Output: LLama a show_card para mostrar cada carta inicial
+;Muestra los pares iniciales de cartas de los jugadores
+(define (set_pair cards player)
+  (show_card (first cards) player 1)
+  (cond
+    [(= player 1) (show_card (second cards) 1 2)]
+    [else(show_card 0 player 2)]
+    ))
+
+;Input: Una carta, un jugador, y la posicion donde va la carta
+;Output: Muestra la carta en la interfaz
+;Funcion que crea el bitmap de la imagen de la carta y lo coloca en su posicion en el canvas
+(define (show_card card player pos)
+  (define pic '())
+  (define x 0)
+  (define y 0)
+                              (cond
+                                 ;Hidden
+                                 [(= card 0)(set! pic (make-object bitmap% "cards/00.png"))]
+                                 ;As
+                                 [(= card 11)(set! pic (make-object bitmap% "cards/11.png"))]
+                                 [(= card 12)(set! pic (make-object bitmap% "cards/12.png"))]
+                                 [(= card 13)(set! pic (make-object bitmap% "cards/13.png"))]
+                                 [(= card 14)(set! pic (make-object bitmap% "cards/14.png"))]
+                                 ;2
+                                 [(= card 21)(set! pic (make-object bitmap% "cards/21.png"))]
+                                 [(= card 22)(set! pic (make-object bitmap% "cards/22.png"))]
+                                 [(= card 23)(set! pic (make-object bitmap% "cards/23.png"))]
+                                 [(= card 24)(set! pic (make-object bitmap% "cards/24.png"))]
+                                 ;3
+                                 [(= card 31)(set! pic (make-object bitmap% "cards/31.png"))]
+                                 [(= card 32)(set! pic (make-object bitmap% "cards/32.png"))]
+                                 [(= card 33)(set! pic (make-object bitmap% "cards/33.png"))]
+                                 [(= card 34)(set! pic (make-object bitmap% "cards/34.png"))]
+                                 ;4
+                                 [(= card 41)(set! pic (make-object bitmap% "cards/41.png"))]
+                                 [(= card 42)(set! pic (make-object bitmap% "cards/42.png"))]
+                                 [(= card 43)(set! pic (make-object bitmap% "cards/43.png"))]
+                                 [(= card 44)(set! pic (make-object bitmap% "cards/44.png"))]
+                                 ;5
+                                 [(= card 51)(set! pic (make-object bitmap% "cards/51.png"))]
+                                 [(= card 52)(set! pic (make-object bitmap% "cards/52.png"))]
+                                 [(= card 53)(set! pic (make-object bitmap% "cards/53.png"))]
+                                 [(= card 54)(set! pic (make-object bitmap% "cards/54.png"))]
+                                 ;6
+                                 [(= card 61)(set! pic (make-object bitmap% "cards/61.png"))]
+                                 [(= card 62)(set! pic (make-object bitmap% "cards/62.png"))]
+                                 [(= card 63)(set! pic (make-object bitmap% "cards/63.png"))]
+                                 [(= card 64)(set! pic (make-object bitmap% "cards/64.png"))]
+                                 ;7
+                                 [(= card 71)(set! pic (make-object bitmap% "cards/71.png"))]
+                                 [(= card 72)(set! pic (make-object bitmap% "cards/72.png"))]
+                                 [(= card 73)(set! pic (make-object bitmap% "cards/73.png"))]
+                                 [(= card 74)(set! pic (make-object bitmap% "cards/74.png"))]
+                                 ;8
+                                 [(= card 81)(set! pic (make-object bitmap% "cards/81.png"))]
+                                 [(= card 82)(set! pic (make-object bitmap% "cards/82.png"))]
+                                 [(= card 83)(set! pic (make-object bitmap% "cards/83.png"))]
+                                 [(= card 84)(set! pic (make-object bitmap% "cards/84.png"))]
+                                 ;9
+                                 [(= card 91)(set! pic (make-object bitmap% "cards/91.png"))]
+                                 [(= card 92)(set! pic (make-object bitmap% "cards/92.png"))]
+                                 [(= card 93)(set! pic (make-object bitmap% "cards/93.png"))]
+                                 [(= card 94)(set! pic (make-object bitmap% "cards/94.png"))]
+                                 ;10
+                                 [(= card 101)(set! pic (make-object bitmap% "cards/101.png"))]
+                                 [(= card 102)(set! pic (make-object bitmap% "cards/102.png"))]
+                                 [(= card 103)(set! pic (make-object bitmap% "cards/103.png"))]
+                                 [(= card 104)(set! pic (make-object bitmap% "cards/104.png"))]
+                                 ;J
+                                 [(= card 111)(set! pic (make-object bitmap% "cards/111.png"))]
+                                 [(= card 112)(set! pic (make-object bitmap% "cards/112.png"))]
+                                 [(= card 113)(set! pic (make-object bitmap% "cards/113.png"))]
+                                 [(= card 114)(set! pic (make-object bitmap% "cards/114.png"))]
+                                 ;Q
+                                 [(= card 121)(set! pic (make-object bitmap% "cards/121.png"))]
+                                 [(= card 122)(set! pic (make-object bitmap% "cards/122.png"))]
+                                 [(= card 123)(set! pic (make-object bitmap% "cards/123.png"))]
+                                 [(= card 124)(set! pic (make-object bitmap% "cards/124.png"))]
+                                 ;K
+                                 [(= card 131)(set! pic (make-object bitmap% "cards/131.png"))]
+                                 [(= card 132)(set! pic (make-object bitmap% "cards/132.png"))]
+                                 [(= card 133)(set! pic (make-object bitmap% "cards/133.png"))]
+                                 [(= card 134)(set! pic (make-object bitmap% "cards/134.png"))])
+  
+                                 ;pos
+                            (cond
+                                 [(= player 0)
+                                  {cond
+                                    [(= pos 1)(set! x 665)(set! y 34) (display x)]
+                                    [(= pos 2)(set! x 858)(set! y 33)]
+                                    [(= pos 3)(set! x 1055)(set! y 34)]
+                                    [else (set! x 1248) (set! y 32)]
+                                    }]
+                                 [(= player 1)
+                                  {cond
+                                    [(= pos 1)(set! x 94)(set! y 626)]
+                                    [(= pos 2)(set! x 285)(set! y 626)]
+                                    [(= pos 3)(set! x 190)(set! y 360)]
+                                    [else (set! x 280) (set! y 360)]
+                                    }]
+                                 [(= player 2)
+                                  {cond
+                                    [(= pos 1)(set! x 775)(set! y 632)]
+                                    [(= pos 2)(set! x 966)(set! y 632)]
+                                    [(= pos 3)(set! x 871)(set! y 366)]
+                                    [else (set! x 961) (set! y 366)]
+                                    }]
+                                 [(= player 3)
+                                  {cond
+                                    [(= pos 1)(set! x 1452)(set! y 634)]
+                                    [(= pos 2)(set! x 1644)(set! y 634)]
+                                    [(= pos 3)(set! x 1548)(set! y 368)]
+                                    [else (set! x 1638) (set! y 368)]
+                                    }])
+                            (send (send canvas get-dc) draw-bitmap pic x y))
+
+;Input: Recibe un numero de 0 a 3
+;Output: Una lista con las cartas del jugador
+;Retorna la cartas de un jugador o el crupier
+(define (player_cards player)(cond
+                            [(= player 0)(car game)]
+                            [(= player 1)(cadr game)]
+                            [(= player 2)(caddr game)]
+                            [(= player 3)(car(cdddr game))]
+                            ))
+
+;Input: N/A
+;Output: LLama a end_game o cambia el turno
+;Funcion que se ejecuta cuando se pasa al siguente turni
+;Evalua si el jeugo debe terminar o continuar
+(define (next_turn)(cond
+                     [(= playing 1)(send msg set-label "Thanks for playing")(end_game)]
+                     [(and(= playing 2)(= turn 1)) (send msg set-label (string-append "In turn: " (first player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
+                     [(and(= playing 2)(= turn 2)) (send msg set-label "Thanks for playing")(end_game)]
+                     [(and(= playing 3)(= turn 1)) (send msg set-label (string-append "In turn: " (second player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
+                     [(and(= playing 3)(= turn 2)) (send msg set-label (string-append "In turn: " (third player_names)))(set! turn 3)(show_card (second(player_cards 3)) 3 2)]
+                     [(and(= playing 3)(= turn 3)) (send msg set-label "Thanks for playing")(end_game)]
+                     ))
+
+;Input: N/A
+;Output: Termina la partida y muestra la ventana de resultados
+;Funcion que se llama al verificar que la partida ha terminado
+(define (end_game)
+  (show_crupier (rest(player_cards 0)) 2)
+  (set! result_strings (winners game))
+  (send result1 set-label (string-append (string-append (first player_names) " ") (first result_strings)))
+  (cond
+    [(>= playing 2) (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))]
+    [(= playing 3) (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))
+                   (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))])
+  (send results show #t))
+
+;Input: Una lista con las cartas del crupier y la posicion donde va la primer carta de la lista
+;Output: Mostrar las cartas del crupier
+;Funcion recusriva que llama a show_card para mostrar todas las cartas del crupier
+(define (show_crupier cards pos)(cond
+                             [(null? cards)]
+                             [else (show_card (first cards) 0 pos) (show_crupier (rest cards) (+ pos 1))]))
+
+;___________________________________________
+
+;            _________________________________
+;___________/Definicion de ventanas auxiliares
 
 
-(define jugadores (new dialog% (label "Jugadores")))
-(define p1(new text-field% [parent jugadores] [label "Jugador 1"]))
-(define p2(new text-field% [parent jugadores] [label "Jugador 2"]))
-(define p3(new text-field% [parent jugadores] [label "Jugador 3"]))
-(new button% [parent jugadores]
+;Define un cuadro de dialogo con cuadros de texto para tomar los nombres de los jugadores al inicar una partida
+(define players (new dialog% (label "Players")))
+(define p1(new text-field% [parent players] [label "Player 1"]))
+(define p2(new text-field% [parent players] [label "Player 2"]))
+(define p3(new text-field% [parent players] [label "Player 3"]))
+(new button% [parent players]
              [label "Ok"]
              [callback (lambda (button event)
-                         (send jugadores show #f)
-                         (iniciarPartida (send p1 get-value) (send p2 get-value) (send p3 get-value)))])
+                         (send players show #f)
+                         (start_game (send p1 get-value) (send p2 get-value) (send p3 get-value)))])
 
 
-(define resultados (new dialog% (label "Resultados")))
-(new message% [parent resultados]
-                          [label (string-append "Jugador 1 " "result2")])
-(new message% [parent resultados]
-                          [label (string-append "Jugador 2 " "result3")])
-(new message% [parent resultados]
-                          [label (string-append "Jugador 3 " "result4")]) 
-
-(define (iniciarPartida j1 j2 j3)
-  (display j1)
-  (display "\n")
-  (display j2)
-  (display "\n")
-  (display j3))
+;Define un cuadro de dialogo para mostrar los resultados de los jugadores al terminar una partida
+(define results (new dialog% (label "Results")))
+(define result1(new message% [parent results]
+                          [label " "]
+                          [auto-resize #t]))
+(define result2(new message% [parent results]
+                          [label " "]
+                          [auto-resize #t]))
+(define result3(new message% [parent results]
+                          [label " "]
+                          [auto-resize #t]))
+(new button% [parent results]
+             [label "Play again"]
+             [callback (lambda (button event)
+                         (send results show #f)
+                         (send (send canvas get-dc) clear)
+                         (send (send canvas get-dc) draw-bitmap background 0 0)
+                         (send msg set-label "Welcome")
+                         (set! playing 1)
+                         (set! turn 1)
+                         (set! deck '())
+                         (set! game '())
+                         (set! result_strings '())
+                         (set! player_names '())
+                         (send players show #t)
+                         )])
 
 (send frame show #t)
-(send resultados show #t)
-(send jugadores show #t)
+(send players show #t)
 
+;________________________________________________________
 
 
 
