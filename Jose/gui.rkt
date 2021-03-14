@@ -1,5 +1,8 @@
 #lang racket/gui
 
+(require "logic.rkt")
+
+
 (define (first list)
   (car list))
 (define (rest list)
@@ -9,23 +12,8 @@
 (define (third list)
   (caddr list))
 
-
-
-
-;Posiciones
-;crupier: (1(665 34) 2(858 33) 3(1055 34) 4(1248 32))
-;J1: (1(94 626) 2(285 626) 3(190 360))
-;J2: (1(775 632) 2(966 632) 3(871 366))
-;J3: (1(1452 634) 1(1644 634) 3(1548 368))
-
-;1 Espada
-;2 Rombo
-;3 Trebol
-;4 Corazon
-
-
-(require "logic.rkt")
-
+;         ________________________
+;________/Definicion de variables
 
 (define background (make-object bitmap% "bg.png"))
 (define playing 1)
@@ -35,24 +23,26 @@
 (define result_strings '("" "" ""))
 (define player_names '("" "" ""))
 
-(define pth "walk_wood.wav")    ; path to audio file (windows can only play .wav)
-
-(define play-asynchronously #t) ; continue execution while file is playing?
-
-(play-sound pth play-asynchronously)
+;________________________________
 
 
+;         ______________________________________________
+;________/Definicion de frame principal y sus elementos
+
+;Define un frame no ajustable de 1920x1040
 (define frame (new frame%
                    [label "BlackCEJack"]
                    [width 1920]
                    [height 1040]
-                   [style '(no-resize-border)]))
+                   [style '(no-resize-border)]
+                   ))
 
-
+;Mensaje sobre el frame
 (define msg (new message% [parent frame]
                           [label "Welcome"]
                           [auto-resize #t]))
 
+;Define un canvas de 1920 x 900 en el frame
 (define canvas (new canvas% [parent frame]
              [min-width 1920]	 
    	     [min-height 900]
@@ -60,6 +50,7 @@
               (lambda (canvas dc)
                 (send dc draw-bitmap background 0 0))]))
 
+;Define un panel para contener los botones, y los botones de la interfaz
 (define panel (new horizontal-panel%
                    [parent frame]
                    [alignment '(center bottom)]
@@ -70,82 +61,27 @@
              [label "Stay"]
              [callback (lambda (button event)
                          (next_turn))])
-             
-  
 (new button% [parent panel]
              [min-width 100]	 
    	     [min-height 50]
              [label "Hit"]
              [callback (lambda (button event)
-                         (set! game (draw_card turn game))
+                         (define updated_game (draw_card turn (append (list deck) game)))
+                         (set! game (rest updated_game))
+                         (set! deck (first updated_game))
                          (show_card (list-ref (player_cards turn) (- (length (player_cards turn)) 1) ) turn (length (player_cards turn)))
                          (cond
                               [(keep_playing? (player_cards turn))]
                               [else (next_turn)]))])
-                         
 
-(define (player_cards player)(cond
-                            [(= player 0)(car game)]
-                            [(= player 1)(cadr game)]
-                            [(= player 2)(caddr game)]
-                            [(= player 3)(car(cdddr game))]
-                            ))
+;____________________________________________________
 
-(define (next_turn)(cond
-                     [(= playing 1)(send msg set-label "Thanks for playing")(end_game)]
-                         [(and(= playing 2)(= turn 1)) (send msg set-label (string-append "In turn: " (first player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
-                         [(and(= playing 2)(= turn 2)) (send msg set-label "Thanks for playing")(end_game)]
-                         [(and(= playing 3)(= turn 1)) (send msg set-label (string-append "In turn: " (second player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
-                         [(and(= playing 3)(= turn 2)) (send msg set-label (string-append "In turn: " (third player_names)))(set! turn 3)(show_card (second(player_cards 3)) 3 2)]
-                         [(and(= playing 3)(= turn 3)) (send msg set-label "Thanks for playing")(end_game)]
-                     ))
+;       ____________________________________
+;______/Funciones principales de la interfaz
 
-(define (end_game)
-  (show_crupier (rest(player_cards 0)) 2)
-  (set! result_strings (give_results game))
-  (send result1 set-label (string-append (string-append (first player_names) " ") (first result_strings)))
-  (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))
-  (send result3 set-label (string-append (string-append (third player_names) " ") (third result_strings)))
-  (send results show #t))
-  
-(define players (new dialog% (label "Players")))
-(define p1(new text-field% [parent players] [label "Player 1"]))
-(define p2(new text-field% [parent players] [label "Player 2"]))
-(define p3(new text-field% [parent players] [label "Player 3"]))
-(new button% [parent players]
-             [label "Ok"]
-             [callback (lambda (button event)
-                         (send players show #f)
-                         (start_game (send p1 get-value) (send p2 get-value) (send p3 get-value)))])
-
-
-(define results (new dialog% (label "Results")))
-(define result1(new message% [parent results]
-                          [label "Hola"]
-                          [auto-resize #t]))
-(define result2(new message% [parent results]
-                          [label "Hello"]
-                          [auto-resize #t]))
-(define result3(new message% [parent results]
-                          [label "Salut"]
-                          [auto-resize #t]))
-(new button% [parent results]
-             [label "Play again"]
-             [callback (lambda (button event)
-                         (send results show #f)
-                         (send (send canvas get-dc) clear)
-                         (send (send canvas get-dc) draw-bitmap background 0 0)
-                         (send msg set-label "Welcome")
-                         (set! playing 1)
-                         (set! turn 1)
-                         (set! deck '())
-                         (set! game '())
-                         (set! result_strings '())
-                         (set! player_names '())
-                         (send players show #t)
-                         )])
-
-
+;Input: Recibe 3 strings con los nombres de los jugadores
+;Output: LLama a show_cards que muestra las cartas inicialese en la interfaz
+;Comienza el juego. Pide a la logica que arme la partida incial.
 (define (start_game p1 p2 p3)
   (define new_game '())
   (cond
@@ -159,22 +95,27 @@
   (set! game (rest new_game))
   (show_cards game 0))
 
-
+;Input: Las cartas de un jugador y un numero para referenciarlo 
+;Output: Llama a set pair para mostrar los pares de cartas inciales
+;Funcion recursiva que muestra los pares iniciales de cartas de los jugadores
 (define (show_cards cards player)(cond
                           [(null? cards)(send msg set-label (string-append "In turn: " (first player_names)))]
                           [else (set_pair (first cards) player ) (show_cards (rest cards) (+ player 1))]
                           ))
 
+;Input: Las cartas de un jugador y un numero para referenciarlo
+;Output: LLama a show_card para mostrar cada carta inicial
+;Muestra los pares iniciales de cartas de los jugadores
 (define (set_pair cards player)
   (show_card (first cards) player 1)
   (cond
     [(= player 1) (show_card (second cards) 1 2)]
-    [else(show_card 0 player 2)]))
+    [else(show_card 0 player 2)]
+    ))
 
-(define (show_crupier cards pos)(cond
-                             [(null? cards)]
-                             [else (show_card (first cards) 0 pos) (show_crupier (rest cards) (+ pos 1))]))
-
+;Input: Una carta, un jugador, y la posicion donde va la carta
+;Output: Muestra la carta en la interfaz
+;Funcion que crea el bitmap de la imagen de la carta y lo coloca en su posicion en el canvas
 (define (show_card card player pos)
   (define pic '())
   (define x 0)
@@ -280,10 +221,98 @@
                                     }])
                             (send (send canvas get-dc) draw-bitmap pic x y))
 
+;Input: Recibe un numero de 0 a 3
+;Output: Una lista con las cartas del jugador
+;Retorna la cartas de un jugador o el crupier
+(define (player_cards player)(cond
+                            [(= player 0)(car game)]
+                            [(= player 1)(cadr game)]
+                            [(= player 2)(caddr game)]
+                            [(= player 3)(car(cdddr game))]
+                            ))
+
+;Input: N/A
+;Output: LLama a end_game o cambia el turno
+;Funcion que se ejecuta cuando se pasa al siguente turni
+;Evalua si el jeugo debe terminar o continuar
+(define (next_turn)(cond
+                     [(= playing 1)(send msg set-label "Thanks for playing")(end_game)]
+                     [(and(= playing 2)(= turn 1)) (send msg set-label (string-append "In turn: " (first player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
+                     [(and(= playing 2)(= turn 2)) (send msg set-label "Thanks for playing")(end_game)]
+                     [(and(= playing 3)(= turn 1)) (send msg set-label (string-append "In turn: " (second player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
+                     [(and(= playing 3)(= turn 2)) (send msg set-label (string-append "In turn: " (third player_names)))(set! turn 3)(show_card (second(player_cards 3)) 3 2)]
+                     [(and(= playing 3)(= turn 3)) (send msg set-label "Thanks for playing")(end_game)]
+                     ))
+
+;Input: N/A
+;Output: Termina la partida y muestra la ventana de resultados
+;Funcion que se llama al verificar que la partida ha terminado
+(define (end_game)
+  (show_crupier (rest(player_cards 0)) 2)
+  (set! result_strings (winners game))
+  (send result1 set-label (string-append (string-append (first player_names) " ") (first result_strings)))
+  (cond
+    [(>= playing 2) (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))]
+    [(= playing 3) (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))
+                   (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))])
+  (send results show #t))
+
+;Input: Una lista con las cartas del crupier y la posicion donde va la primer carta de la lista
+;Output: Mostrar las cartas del crupier
+;Funcion recusriva que llama a show_card para mostrar todas las cartas del crupier
+(define (show_crupier cards pos)(cond
+                             [(null? cards)]
+                             [else (show_card (first cards) 0 pos) (show_crupier (rest cards) (+ pos 1))]))
+
+;___________________________________________
+
+;            _________________________________
+;___________/Definicion de ventanas auxiliares
+
+
+;Define un cuadro de dialogo con cuadros de texto para tomar los nombres de los jugadores al inicar una partida
+(define players (new dialog% (label "Players")))
+(define p1(new text-field% [parent players] [label "Player 1"]))
+(define p2(new text-field% [parent players] [label "Player 2"]))
+(define p3(new text-field% [parent players] [label "Player 3"]))
+(new button% [parent players]
+             [label "Ok"]
+             [callback (lambda (button event)
+                         (send players show #f)
+                         (start_game (send p1 get-value) (send p2 get-value) (send p3 get-value)))])
+
+
+;Define un cuadro de dialogo para mostrar los resultados de los jugadores al terminar una partida
+(define results (new dialog% (label "Results")))
+(define result1(new message% [parent results]
+                          [label " "]
+                          [auto-resize #t]))
+(define result2(new message% [parent results]
+                          [label " "]
+                          [auto-resize #t]))
+(define result3(new message% [parent results]
+                          [label " "]
+                          [auto-resize #t]))
+(new button% [parent results]
+             [label "Play again"]
+             [callback (lambda (button event)
+                         (send results show #f)
+                         (send (send canvas get-dc) clear)
+                         (send (send canvas get-dc) draw-bitmap background 0 0)
+                         (send msg set-label "Welcome")
+                         (set! playing 1)
+                         (set! turn 1)
+                         (set! deck '())
+                         (set! game '())
+                         (set! result_strings '())
+                         (set! player_names '())
+                         (send players show #t)
+                         )])
 
 (send frame show #t)
 (send players show #t)
 
+;________________________________________________________
 
 
 

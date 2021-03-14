@@ -2,16 +2,16 @@
 
 (provide draw_card)
 (provide keep_playing?)
-(provide give_results)
+(provide winners)
 (provide bCEj)
 
-(define (draw_card player cards)
+(define (draw_card player game)
   '((82 103 132 11) (12 73 41 13) (91 33) (81 54 71)))
 
 (define (keep_playing? cards)
   #t)
 
-(define (give_results cards)
+(define (winners cards)
   '("WINS" "LOSES" "WINS"))
 
 
