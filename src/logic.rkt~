@@ -26,14 +26,14 @@
 ;Input: Una lista 
 ;Output: La lista si el último elemento
 [define (delete_last_element lista)
-  (reverse (rest (reverse lista)))
+  (reverse (cdr (reverse lista)))
   ]
 
 ;Función que retorna el último elemento de una lista
 ;Input: Una lista 
 ;Output: El último elemento de la lista
 [define (get_last_element lista)
-  (first (reverse lista))
+  (car (reverse lista))
   ]
 
 ;Función que reemplaza el elemento en la posición dada con el elemento dado
@@ -41,8 +41,8 @@
 ;Output: La lista con el elemento dado en la posición especificada
 [define (replace index ele lista)
   (cond((<= (length lista) index) lista)
-       ((equal? index 0) (append (list ele) (rest lista)))
-        (else (append (list (car lista)) (replace (- index 1) ele (rest lista)))))]
+       ((equal? index 0) (append (list ele) (cdr lista)))
+        (else (append (list (car lista)) (replace (- index 1) ele (cdr lista)))))]
 
 
 
@@ -57,7 +57,7 @@
   ]
 [define (bCEj_aux players deck)
   (cond((null? players) (append (crupier deck)))
-       (else (cons (first (draw_cards 2 deck)) (bCEj_aux (rest players) (second (draw_cards 2 deck))))))
+       (else (cons (car (draw_cards 2 deck)) (bCEj_aux (cdr players) (cadr (draw_cards 2 deck))))))
   ]
 
 ;Función que indica si el jugador puede seguir pidiendo cartas
@@ -79,20 +79,18 @@
 ;Input: Una lista on el juego completo: ((mazo) (cartas del crupier) (cartas J1)...)
 ;Output: Una lista de strings con la condición de cada jugador ("Won" "Tie" "Lost")
 [define (winners game)
-  (winners_aux (first game) (cdr game))  
+  (winners_aux (car game) (cdr game))  
   ]
 [define (winners_aux crupie players)
   (cond ((null? players) '())
-        ;;El jugador tiene blackjack
-        ((blackjack? (first players)) (append (list "BlackJack") (winners_aux crupie (rest players))))
-        ;;El crupier tiene blackjack
-        ((blackjack? crupie) (append (list "Crupier BlackJack") (winners_aux crupie (rest players))))
-        ((lost? crupie (first players)) (append (list "Lost") (winners_aux crupie (rest players))))
-        ((won? crupie (first players)) (append (list "Won") (winners_aux crupie (rest players))))
-        ((tie? crupie (first players)) (append (list "Tie") (winners_aux crupie (rest players))))
-        (else (append (list "Won") (winners_aux crupie (rest players)))))
+        ((blackjack? (car players)) (append (list "BlackJack") (winners_aux crupie (cdr players))))
+        ((blackjack? crupie) (append (list "Crupier BlackJack") (winners_aux crupie (cdr players))))
+        ((not (keep_playing? (car players))) (append (list "Lost") (winners_aux crupie (cdr players))))
+        ((not (keep_playing? crupie)) (append (list "Won") (winners_aux crupie (cdr players))))
+        ((< (add_cards (car players)) (add_cards crupie)) (append (list "Lost") (winners_aux crupie (cdr players))))
+        ((= (add_cards (car players)) (add_cards crupie)) (append (list "Tie") (winners_aux crupie (cdr players))))
+        (else (append (list "Won") (winners_aux crupie (cdr players)))))
   ]
-
 
 
 ;       __________________________________________________________________
@@ -112,42 +110,15 @@
         131 132 133 134))
   ]
 
-;Función para saber si el jugador perdió
-;Input: Una lista con las cartas del crupier y una lista con las cartas del jugador
-;Output: #t si el jugador perdió y #f de lo contrario
-[define (lost? crupier player)
-  (cond((or (and (not (keep_playing? player))
-       (not (equal? (add_cards player) 21)))
-       (and (keep_playing? crupier)
-            (< (add_cards player) (add_cards crupier)))) #t)
-  (else #f))
-  
-  ]
-;Función para saber si el jugador empató con el crupier
-;Input: Una lista con las cartas del crupier y una lista con las cartas del jugador
-;Output: #t si hubo un empate y #f de lo contrario
-[define (tie? crupier player)
-  (cond((= (add_cards player) (add_cards crupier)) #t)
-  (else #f))
-  ]
-
-;Función para saber si el jugador ganó
-;Input: Una lista con las cartas del crupier y una lista con las cartas del jugador
-;Output: #t si el jugador ganó y #f de lo contrario
-[define (won? crupier player)
-  (cond((and (not (keep_playing? crupier)) (not (equal? (add_cards crupier) 21))) #t)
-       (else #f))
-  ]
-
 ;Función que retorna las cartas del juego completo del crupier
 ;Input: El deck con el que juega el crupier
 ;Output:Una lista con: una lista con las cartas del crupier y el mazo sin las cartas del crupier
 [define (crupier deck)
-  (crupier_aux (first (draw_cards 2 deck)) (second (draw_cards 2 deck)))
+  (crupier_aux (car (draw_cards 2 deck)) (cadr (draw_cards 2 deck)))
   ]
 [define (crupier_aux hand deck)
   (cond
-       ((<= (add_cards hand) 16) (list (append hand (first (draw_cards 1 deck))) (get_last_element (draw_cards 1 deck) ) ))
+       ((<= (add_cards hand) 16) (list (append (car (draw_cards 1 deck)) hand) (get_last_element (draw_cards 1 deck) ) ))
        (else (list hand deck))
   )
       ]
@@ -159,7 +130,7 @@
   (list (delete_last_element (draw_cards_aux num deck)) (get_last_element (draw_cards_aux num deck)))]
 [define (draw_cards_aux num deck)
   (cond ((equal? num 0) (list deck)) 
-        (else (append (list (first deck)) (draw_cards_aux (- num 1) (rest deck)))
+        (else (append (list (car deck)) (draw_cards_aux (- num 1) (cdr deck)))
               ))]
 
         
@@ -168,8 +139,8 @@
 ;Output: La misma lista con un As que vale 1
 [define (replace_as_value hand)
   (cond ((null? hand) '())
-        ((as? (first hand)) (append (list 11.1) (rest hand)))
-        (else (append (list (first hand)) (replace_as_value (rest hand)))))
+        ((as? (car hand)) (append (list 11.1) (cdr hand)))
+        (else (append (list (car hand)) (replace_as_value (cdr hand)))))
   
  ]
 
@@ -206,8 +177,8 @@
 ;Output: #t si se formó un Blackjack y #f en el caso contrario
 [define (blackjack? cards)
   (cond((and (equal? (length cards) 2)
-             (or (and (ten? (first cards)) (as? (second cards)))
-                 (and (as? (first cards)) (ten? (second cards))))) #t)
+             (or (and (ten? (car cards)) (as? (cadr cards)))
+                 (and (as? (car cards)) (ten? (cadr cards))))) #t)
        (else #f))
   ]
 
@@ -216,8 +187,8 @@
 ;Output: #t si tiene al menos un As y #f en el caso contrario
 [define (has_as? hand)
   (cond ((null? hand) #f)
-        ((as? (first hand)) #t)
-        (else (has_as? (rest hand))))]
+        ((as? (car hand)) #t)
+        (else (has_as? (cdr hand))))]
 
 ;Función que suma las cartas de una mano
 ;Input: Una lista con las cartas
@@ -227,9 +198,24 @@
         (else (add_cards_aux hand)))]
 [define (add_cards_aux hand)  
   (cond((null? hand) 0)
-      (else (+ (get_card_value (first hand)) (add_cards_aux (rest hand)))))
+      (else (+ (get_card_value (car hand)) (add_cards_aux (cdr hand)))))
   ]
 
 
 
+
+
+
+
+
+;;crupier tiene blackjack
+;(winners '((121 12) (12 65) (12 13) (121 64 131)))
+
+;; Jugador 1 con blackjack
+;(winners '((121 12) (121 12) (12 13) (121 64 131)))
+
+;;j1 empata con 12, j2 gana con 13, j3 pierde con 10
+;(winners '((12 12) (12 12) (34 113) (64 43)))
+                     
+  
   
