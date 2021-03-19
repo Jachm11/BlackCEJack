@@ -147,7 +147,7 @@
   ]
 [define (crupier_aux hand deck)
   (cond
-       ((<= (add_cards hand) 16) (list (append hand (first (draw_cards 1 deck))) (get_last_element (draw_cards 1 deck) ) ))
+       ((and (<= (add_cards hand) 16) (keep_playing? hand)) (crupier_aux (append hand (first (draw_cards 1 deck))) (get_last_element (draw_cards 1 deck))) )
        (else (list hand deck))
   )
       ]
