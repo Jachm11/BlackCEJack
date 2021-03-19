@@ -242,7 +242,7 @@
                      [(and(= playing 3)(= turn 3)) (send msg set-label "Thanks for playing")(end_game)]
                      )
                      (set! extras 0)(cond
-                                     ((not(keep_playing? (player_cards turn))) (next_turn))))
+                                     [(and (not(null? (rest game)))(not(keep_playing? (player_cards turn))) ) (next_turn)]))
 
 
 ;Input: N/A
