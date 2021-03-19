@@ -125,7 +125,7 @@
 [define (lost? crupier player)
   (cond((or (and (not (keep_playing? player))
        (not (equal? (add_cards player) 21)))
-       (and (keep_playing? crupier)
+       (and (or (keep_playing? crupier) (equal? (add_cards player) 21))
             (< (add_cards player) (add_cards crupier)))) #t)
   (else #f))
   
