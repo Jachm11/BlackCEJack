@@ -13,10 +13,9 @@
 (define result_strings '("" "" ""))
 (define player_names '("" "" ""))
 (define extras 0)
-(define sound1 (string-append (path->string (current-directory)) "sounds\\card.wav"))
-(define sound2 (string-append (path->string (current-directory))"sounds\\finale.wav"))
+(define sound1 (string-append (path->string (current-directory)) "sounds/card.wav"))
+(define sound2 (string-append (path->string (current-directory))"sounds/finale.wav"))
 (define play-asynchronously #t)
-(play-sound sound1 play-asynchronously)
 (play-sound sound2 play-asynchronously)
 
 ;________________________________
@@ -75,8 +74,8 @@
 ;       ____________________________________
 ;______/Funciones principales de la interfaz
 
-;Input: Recibe 3 strings con los nombres de los jugadores
-;Output: LLama a show_cards que muestra las cartas inicialese en la interfaz
+;Input: Recibe 3 strings con los nombres de los jugadores.
+;Output: Llama a show_cards que muestra las cartas iniciales en la interfaz.
 ;Comienza el juego. Pide a la logica que arme la partida incial.
 (define (start_game p1 p2 p3)
   (define new_game '())
@@ -90,23 +89,22 @@
        [(equal? p2 "") (set! new_game (bCEj (list p1 p3))) (set! playing 2) (set! player_names (list p1 p3))]
        [else(set! new_game (bCEj (list p1 p2 p3))) (set! playing 3) (set! player_names (list p1 p2 p3))])
   (set! deck (first new_game))
-  ;(play-sound sound2 play-asynchronously)
   (set! game (rest new_game))
   (show_cards game 0)
   (cond
     ((not(keep_playing? (player_cards turn))) (next_turn) )))
 
-;Input: Las cartas de un jugador y un numero para referenciarlo 
-;Output: Llama a set pair para mostrar los pares de cartas inciales
-;Funcion recursiva que muestra los pares iniciales de cartas de los jugadores
+;Input: Las cartas de un jugador y un numero para referenciarlo.
+;Output: Llama a set_pair para mostrar los pares de cartas inciales.
+;Funcion recursiva que muestra los pares iniciales de cartas de los jugadores.
 (define (show_cards cards player)(cond
                           [(null? cards)(send msg set-label (string-append "In turn: " (first player_names)))]
                           [else (set_pair (first cards) player ) (show_cards (rest cards) (+ player 1))]
                           ))
 
-;Input: Las cartas de un jugador y un numero para referenciarlo
-;Output: LLama a show_card para mostrar cada carta inicial
-;Muestra los pares iniciales de cartas de los jugadores
+;Input: Las cartas de un jugador y un numero para referenciarlo.
+;Output: LLama a show_card para mostrar cada carta inicial.
+;Muestra los pares iniciales de cartas de los jugadores.
 (define (set_pair cards player)
   (show_card (first cards) player 1)
   (cond
@@ -114,9 +112,9 @@
     [else(show_card 0 player 2)]
     ))
 
-;Input: Una carta, un jugador, y la posicion donde va la carta
-;Output: Muestra la carta en la interfaz
-;Funcion que crea el bitmap de la imagen de la carta y lo coloca en su posicion en el canvas
+;Input: Una carta, un jugador, y la posicion donde va la carta.
+;Output: Muestra la carta en la interfaz.
+;Funcion que crea el bitmap de la imagen de la carta y lo coloca en su posicion en el canvas.
 (define (show_card card player pos)
   (define pic '())
   (define x 0)
@@ -221,9 +219,9 @@
                             (send (send canvas get-dc) draw-bitmap pic x y)
                             (sleep 0.4))
 
-;Input: Recibe un numero de 0 a 3
-;Output: Una lista con las cartas del jugador
-;Retorna la cartas de un jugador o el crupier
+;Input: Recibe un numero de 0 a 3.
+;Output: Una lista con las cartas del jugador.
+;Retorna las cartas de un jugador o el crupier.
 (define (player_cards player)(cond
                             [(= player 0)(car game)]
                             [(= player 1)(cadr game)]
@@ -232,9 +230,9 @@
                             ))
 
 ;Input: N/A
-;Output: LLama a end_game o cambia el turno
-;Funcion que se ejecuta cuando se pasa al siguente turni
-;Evalua si el jeugo debe terminar o continuar
+;Output: Llama a end_game o cambia el turno.
+;Funcion que se ejecuta cuando se pasa al siguente turno.
+;Evalua si el jeugo debe terminar o continuar.
 (define (next_turn)(cond
                      [(= playing 1)(send msg set-label "Thanks for playing")(end_game)]
                      [(and(= playing 2)(= turn 1)) (send msg set-label (string-append "In turn: " (second player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
@@ -245,22 +243,24 @@
                      )(set! extras 0))
 
 ;Input: N/A
-;Output: Termina la partida y muestra la ventana de resultados
-;Funcion que se llama al verificar que la partida ha terminado
+;Output: Termina la partida y muestra la ventana de resultados.
+;Funcion que se llama al verificar que la partida ha terminado.
 (define (end_game)
+  (set! extras 0)
   (show_crupier (rest(player_cards 0)) 2)
   (set! result_strings (winners game))
   (play-sound sound2 play-asynchronously)
-  (send result1 set-label (string-append (string-append (first player_names) " ") (first result_strings)))
+  (send result0 set-label (first result_strings))
+  (send result1 set-label (string-append (string-append (first player_names) " ") (second result_strings)))
   (cond
-    [(= playing 2) (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))]
-    [(= playing 3) (send result2 set-label (string-append (string-append (second player_names) " ") (second result_strings)))
-                   (send result3 set-label (string-append (string-append (third player_names) " ") (third result_strings)))])
+    [(= playing 2) (send result2 set-label (string-append (string-append (second player_names) " ") (third result_strings)))]
+    [(= playing 3) (send result2 set-label (string-append (string-append (second player_names) " ") (third result_strings)))
+                   (send result3 set-label (string-append (string-append (third player_names) " ") (third(rest result_strings))))])
   (send results show #t))
 
-;Input: Una lista con las cartas del crupier y la posicion donde va la primer carta de la lista
-;Output: Mostrar las cartas del crupier
-;Funcion recusriva que llama a show_card para mostrar todas las cartas del crupier
+;Input: Una lista con las cartas del crupier y la posicion donde va la primer carta de la lista.
+;Output: Mostrar las cartas del crupier.
+;Funcion recursiva que llama a show_card para mostrar todas las cartas del crupier.
 (define (show_crupier cards pos)(cond
                              [(null? cards)]
                              [else (show_card (first cards) 0 pos) (show_crupier (rest cards) (+ pos 1))]))
@@ -285,6 +285,9 @@
 
 ;Define un cuadro de dialogo para mostrar los resultados de los jugadores al terminar una partida
 (define results (new dialog% (label "Results")))
+(define result0(new message% [parent results]
+                          [label " "]
+                          [auto-resize #t]))
 (define result1(new message% [parent results]
                           [label " "]
                           [auto-resize #t]))
