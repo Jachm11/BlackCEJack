@@ -240,7 +240,10 @@
                      [(and(= playing 3)(= turn 1)) (send msg set-label (string-append "In turn: " (second player_names)))(set! turn 2)(show_card (second(player_cards 2)) 2 2)]
                      [(and(= playing 3)(= turn 2)) (send msg set-label (string-append "In turn: " (third player_names)))(set! turn 3)(show_card (second(player_cards 3)) 3 2)]
                      [(and(= playing 3)(= turn 3)) (send msg set-label "Thanks for playing")(end_game)]
-                     )(set! extras 0))
+                     )
+                     (set! extras 0)(cond
+                                     ((not(keep_playing? (player_cards turn))) (next_turn))))
+
 
 ;Input: N/A
 ;Output: Termina la partida y muestra la ventana de resultados.

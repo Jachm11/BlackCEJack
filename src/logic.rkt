@@ -58,7 +58,8 @@
 [define (bCEj_aux players deck)
   (cond((null? players) (append (crupier deck)))
        (else (cons (first (draw_cards 2 deck)) (bCEj_aux (rest players) (second (draw_cards 2 deck))))))
-  ]
+ ]
+
 
 ;Función que indica si el jugador puede seguir pidiendo cartas
 ;Input: Una lista con las cartas del jugador
