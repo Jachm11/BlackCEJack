@@ -79,7 +79,7 @@
 ;Input: Una lista on el juego completo: ((mazo) (cartas del crupier) (cartas J1)...)
 ;Output: Una lista de strings con la condición de cada jugador ("Won" "Tie" "Lost")
 [define (winners game)
-  (winners_aux (first game) (cdr game))  
+  (append (result "Crupier" (add_cards (first game))) (winners_aux (first game) (cdr game)))  
   ]
 [define (winners_aux crupie players)
   (cond ((null? players) '())
@@ -87,10 +87,16 @@
         ((blackjack? (first players)) (append (list "BlackJack") (winners_aux crupie (rest players))))
         ;;El crupier tiene blackjack
         ((blackjack? crupie) (append (list "Crupier BlackJack") (winners_aux crupie (rest players))))
-        ((lost? crupie (first players)) (append (list "Lost") (winners_aux crupie (rest players))))
-        ((won? crupie (first players)) (append (list "Won") (winners_aux crupie (rest players))))
-        ((tie? crupie (first players)) (append (list "Tie") (winners_aux crupie (rest players))))
-        (else (append (list "Won") (winners_aux crupie (rest players)))))
+        ((lost? crupie (first players)) (append (result "Lost" (add_cards (first players))) (winners_aux crupie (rest players))))
+        ((won? crupie (first players)) (append (result "Won" (add_cards (first players))) (winners_aux crupie (rest players))))
+        ((tie? crupie (first players)) (append (result "Tie" (add_cards (first players))) (winners_aux crupie (rest players))))
+        (else (append (result "Won" (add_cards (first players))) (winners_aux crupie (rest players)))))
+  ]
+;Función que arma la condicion del jugador con sus puntos
+;Input: Un string con la condicion final y un número con sus puntos
+;Output: Una lista con un string armado
+[define (result condition points)
+  (list (string-append condition " with "(number->string points) " points"))
   ]
 
 
